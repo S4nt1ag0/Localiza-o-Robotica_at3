@@ -91,6 +91,10 @@ rosrun localiza_o_robotica_at3 generate_hector_map.sh
 Por padrão são criados `maps/hector/lar_hector.pgm`, `lar_hector.yaml`,
 `lar_hector.png` e `hector.log`.
 
+Mapa gerado com Hector SLAM:
+
+![Mapa gerado com Hector SLAM](maps/hector/lar_hector.png)
+
 ## 4. GMapping
 
 Depois, também sem Gazebo ou outro ROS master ativo, Execute:
@@ -101,6 +105,10 @@ rosrun localiza_o_robotica_at3 generate_gmapping_map.sh
 
 Por padrão são criados `maps/gmapping/lar_gmapping.pgm`, `lar_gmapping.yaml`,
 `lar_gmapping.png` e `gmapping.log`.
+
+Mapa gerado com GMapping:
+
+![Mapa gerado com GMapping](maps/gmapping/lar_gmapping.png)
 
 Ambos reproduzem a mesma bag e salvam em `/maps/` depois do replay.
 
@@ -187,6 +195,56 @@ comparison_position_error.png
 comparison_yaw_error.png
 comparison_trajectories.png
 ```
-## Resultados e discussao
+## Resultados e discussão
 
-Neste ensaio, GMapping obteve menor erro médio e RMSE de posição, mas o relatório deve ser regenerado para cada nova trajetória antes de tirar conclusões.
+### Comparação qualitativa dos mapas
+
+Comparando os arquivos PNG, os dois mapas gerados são bastante parecidos, sem grandes distinções. Entretanto, o Hector SLAM parece ter detectado melhor alguns detalhes e ruídos do ambiente, como um dos pés da mesa na parte inferior do mapa, que não aparece no resultado do GMapping. Portanto, nesta análise qualitativa, o mapa do Hector SLAM foi considerado ligeiramente melhor, embora a diferença seja pequena.
+
+| Hector SLAM | GMapping |
+| :---: | :---: |
+| ![Mapa do Hector SLAM](maps/hector/lar_hector.png) | ![Mapa do GMapping](maps/gmapping/lar_gmapping.png) |
+
+### Resultados quantitativos da localização com AMCL
+
+As métricas foram obtidas a partir da mesma trajetória. Os valores completos estão em `results/metrics/comparison_summary.csv`.
+
+#### Erros de posição
+
+| Métrica | Hector SLAM | GMapping |
+| --- | ---: | ---: |
+| Erro médio (m) | 0,250224 | **0,217926** |
+| RMSE (m) | 0,278254 | **0,252217** |
+| Erro final (m) | 0,190349 | **0,101475** |
+| Desvio padrão (m) | **0,121711** | 0,126971 |
+| Percentil 95 (m) | 0,418044 | **0,406654** |
+| Erro máximo (m) | 0,429126 | **0,421371** |
+| Variação média entre atualizações (m) | 0,012589 | **0,011784** |
+
+#### Erros de orientação
+
+| Métrica | Hector SLAM | GMapping |
+| --- | ---: | ---: |
+| Erro absoluto médio de yaw (rad) | 0,013627 | **0,013562** |
+| RMSE de yaw (rad) | **0,018122** | 0,019441 |
+| Erro final absoluto de yaw (rad) | 0,051501 | **0,050459** |
+| Desvio padrão do erro absoluto (rad) | **0,011946** | 0,013930 |
+| Percentil 95 do erro absoluto (rad) | **0,038115** | 0,048880 |
+
+#### Atualização e covariância do AMCL
+
+| Métrica | Hector SLAM | GMapping |
+| --- | ---: | ---: |
+| Covariância média em XY | **0,019302** | 0,020724 |
+| Covariância média de yaw | **0,002374** | 0,002436 |
+| Taxa média de atualização (Hz) | **1,689686** | 1,685723 |
+| Maior intervalo entre atualizações (s) | **3,26** | 3,30 |
+| Maior diferença temporal do pareamento (s) | 0,02 | 0,02 |
+
+![Comparação das trajetórias estimadas pelo AMCL e do ground truth](results/metrics/comparison_trajectories.png)
+
+![Erro de posição ao longo da trajetória](results/metrics/comparison_position_error.png)
+
+![Erro de orientação em yaw ao longo da trajetória](results/metrics/comparison_yaw_error.png)
+
+Apesar de o Hector SLAM ter apresentado vantagens pequenas na orientação, na covariância estimada e na regularidade das atualizações, o mapa do GMapping permitiu a melhor localização com AMCL neste ensaio. Ele produziu menor erro médio de posição, menor RMSE de posição e um erro final aproximadamente 46,7% menor (0,101 m contra 0,190 m). Como a diferença no erro médio de yaw foi mínima e o GMapping foi melhor nas principais métricas de posição, seus resultados, de maneira geral, foram superiores para esta trajetória.
