@@ -3,6 +3,7 @@ set -euo pipefail
 
 PACKAGES=(
   imagemagick
+  python3-matplotlib
   ros-noetic-amcl
   ros-noetic-gmapping
   ros-noetic-hector-mapping

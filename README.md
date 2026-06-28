@@ -126,3 +126,61 @@ Com a posição inicial padrão do simulador e dos mapas gerados neste projeto,
 use `(0, 0, 0)`. Os resultados preservam `/amcl_pose`, `/particlecloud`, TF,
 odometria e `/gazebo_ground_truth/odom`, permitindo calcular posteriormente
 erro de posição, RMSE, erro angular e estabilidade sem repetir o AMCL.
+
+## 8. Comparar AMCL com o ground truth
+
+Depois de gerar as duas bags de localização, execute:
+
+```bash
+rosrun localiza_o_robotica_at3 compare_amcl_results.py
+```
+
+O comparador lê diretamente:
+
+```text
+results/localization/amcl_hector.bag
+results/localization/amcl_gmapping.bag
+```
+
+Não é necessário iniciar `roscore` nem reproduzir as bags. Cada pose do AMCL é
+associada à amostra de ground truth temporalmente mais próxima, com tolerância
+padrão de `0,1 s`. Como as bags atuais identificam ambas as poses no frame
+`map`, a comparação é direta. Para bags futuras com frames distintos, o script
+aplica um alinhamento rígido SE(2) pela pose inicial e registra essa decisão no
+resumo.
+
+As métricas incluem:
+
+- erro instantâneo, médio, RMSE e erro final de posição;
+- erro médio absoluto, RMSE e erro final de orientação em yaw;
+- desvio padrão, percentil 95 e erro máximo;
+- variação média do erro entre atualizações;
+- taxa média e maior intervalo entre atualizações do AMCL;
+- covariância média informada pelo AMCL.
+
+Os resultados são gravados em `results/metrics/`:
+
+```text
+amcl_hector_metrics.csv
+amcl_hector_summary.txt
+amcl_gmapping_metrics.csv
+amcl_gmapping_summary.txt
+comparison_summary.csv
+comparison_report.md
+comparison_position_error.png
+comparison_yaw_error.png
+comparison_trajectories.png
+```
+
+Para caminhos personalizados ou outra tolerância temporal:
+
+```bash
+rosrun localiza_o_robotica_at3 compare_amcl_results.py \
+  --hector-bag /caminho/amcl_hector.bag \
+  --gmapping-bag /caminho/amcl_gmapping.bag \
+  --output-dir /caminho/resultados \
+  --max-pair-dt 0.1
+```
+
+Neste ensaio, GMapping obteve menor erro médio e RMSE de posição, mas o relatório
+deve ser regenerado para cada nova trajetória antes de tirar conclusões.

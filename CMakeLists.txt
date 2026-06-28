@@ -7,6 +7,7 @@ catkin_package()
 
 catkin_install_python(PROGRAMS
   scripts/check_mapping_topics.py
+  scripts/compare_amcl_results.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
