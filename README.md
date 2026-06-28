@@ -1,20 +1,47 @@
 # Localização Robótica — Atividade 3
 
 Pacote ROS Noetic para gravar uma trajetória do Husky no LaR simulado e gerar
-mapas comparáveis com Hector SLAM e GMapping. A bag também preserva odometria,
-IMU e ground truth para a futura avaliação com AMCL.
+mapas comparáveis com Hector SLAM e GMapping. Também é gravado uma nova bag com uma trajetoria do robô para avaliação com AMCL usando os mapas gerados individualmente com o ground truth do gazebo. 
 
-## 1. Preparação
+## Configuracao do ambiente
+
+O projeto possui um `dockerfile` para preparar o ambiente ROS/Gazebo usado nos testes. Baixe esse arquivo individualmente, coloque-o em uma pasta de trabalho e gere a imagem Docker a partir dele:
 
 ```bash
-cd ~/catkin_ws
-source /opt/ros/noetic/setup.bash
-catkin build localiza_o_robotica_at3
-source devel/setup.bash
-rosrun localiza_o_robotica_at3 check_dependencies.sh
+docker build -t localiza_o_robotica_ros -f dockerfile .
 ```
 
-Se houver dependências ausentes, instale-as explicitamente e recompile:
+Depois que a imagem for criada, inicie o container:
+
+```bash
+docker run -it \
+  --env DISPLAY=$DISPLAY \
+  --env QT_X11_NO_MITSHM=1 \
+  --volume /tmp/.X11-unix:/tmp/.X11-unix:rw \
+  --network host \
+  --name ros_lar_run \
+  <sua_imagem>
+```
+
+Substitua `<sua_imagem>` pelo nome da imagem gerada no passo anterior, por exemplo `ros_lar_run`.
+
+No host, antes de abrir interfaces graficas pelo Docker, libere o acesso ao X11:
+
+```bash
+xhost +local:docker
+```
+
+Dentro do container, clone este repositorio dentro de `~/catkin_ws/src/`:
+
+```bash
+mkdir -p ~/catkin_ws/src
+cd ~/catkin_ws/src
+git clone <link-do-repositorio>
+```
+
+Somente depois disso compile o workspace:
+
+## 1. Preparação
 
 ```bash
 rosrun localiza_o_robotica_at3 check_dependencies.sh --install
@@ -24,8 +51,14 @@ source devel/setup.bash
 
 ## 2. Simulação e gravação
 
-Use três terminais com `/opt/ros/noetic/setup.bash` e
-`~/catkin_ws/devel/setup.bash` carregados.
+Sempre que abrir um novo terminal no container, carregue o ambiente:
+
+```bash
+docker exec -it ros_lar_run bash
+export LIBGL_ALWAYS_SOFTWARE=1
+source /opt/ros/noetic/setup.bash
+source ~/catkin_ws/devel/setup.bash
+```
 
 Terminal 1 — inicie o LaR com o LMS1XX em `/front/scan` e sem SLAM online:
 
@@ -39,21 +72,17 @@ Terminal 2 — abra o controle e selecione **`/cmd_vel`**:
 rosrun rqt_robot_steering rqt_robot_steering
 ```
 
-Comece com velocidades baixas, como `0,4 m/s` e `0,5 rad/s`. Faça curvas
-suaves, observe paredes de ângulos diferentes e revisite áreas já percorridas.
-
 Terminal 3 — grave:
 
 ```bash
 rosrun localiza_o_robotica_at3 record_mapping.sh
 ```
-
- Ao cobrir bem o laboratório, pressione `Ctrl+C`
-somente no terminal da gravação para o rosbag fechar e indexar o arquivo.
+No joystick gerado no Terminal 2 selecione o topico de comando do Husky, normalmente `/husky_velocity_controller/cmd_vel` ou `/cmd_vel`.
+ Manipule o robo com o joystick e ao cobrir bem o laboratório, pare a gravacao no Terminal 3 com `Ctrl+C`.
 
 ## 3. Hector SLAM
 
-Feche o Gazebo e o ROS master da simulação. Execute:
+Feche o Gazebo e o ROS master nos outros terminais abertos. Execute:
 
 ```bash
 rosrun localiza_o_robotica_at3 generate_hector_map.sh
@@ -64,7 +93,7 @@ Por padrão são criados `maps/hector/lar_hector.pgm`, `lar_hector.yaml`,
 
 ## 4. GMapping
 
-Também sem Gazebo ou outro ROS master ativo:
+Depois, também sem Gazebo ou outro ROS master ativo, Execute:
 
 ```bash
 rosrun localiza_o_robotica_at3 generate_gmapping_map.sh
@@ -73,24 +102,33 @@ rosrun localiza_o_robotica_at3 generate_gmapping_map.sh
 Por padrão são criados `maps/gmapping/lar_gmapping.pgm`, `lar_gmapping.yaml`,
 `lar_gmapping.png` e `gmapping.log`.
 
-Ambos reproduzem integralmente a mesma bag com `/use_sim_time`, resolução de
-`0,05 m`, e salvam por `/dynamic_map` depois do replay. Não rode os dois juntos.
+Ambos reproduzem a mesma bag e salvam em `/maps/` depois do replay.
 
 ## 5. Gravar uma trajetória exclusiva para localização
 
-Inicie novamente o Gazebo e o steering como na seção 2. Em outro terminal,
-grave uma nova trajetória:
+Com os mapas prontos, precisamos gravar o bag da trajetoria para aplicar o AMCL.
+
+Terminal 1 — inicie o LaR com o LMS1XX em `/front/scan` e sem SLAM online:
+
+```bash
+rosrun localiza_o_robotica_at3 start_simulation.sh
+```
+
+Terminal 2 — abra o controle e selecione **`/cmd_vel`**:
+
+```bash
+rosrun rqt_robot_steering rqt_robot_steering
+```
+
+Terminal 3 — grave uma nova trajetória com:
 
 ```bash
 rosrun localiza_o_robotica_at3 record_localization.sh
 ```
 
-A saída padrão é `bags/lar_localization.bag`. O script não permite usar o
-caminho de `lar_mapping.bag` e também não sobrescreve uma gravação existente.
-Essa bag é criada sem SLAM e contém laser, TF, odometria e ground truth.
+A saída padrão é `bags/lar_localization.bag`. Essa bag é criada sem SLAM e contém laser, TF, odometria e ground truth.
 
-Ao dirigir, comece na pose padrão do Husky, faça uma trajetória representativa
-e pressione `Ctrl+C` quando terminar. Depois feche Gazebo e qualquer `roscore`.
+Faça fazer uma trajetoria pelo mapa com o Husky, pressione `Ctrl+C` quando terminar. Depois feche Gazebo e qualquer `roscore`.
 
 ## 6. Localização AMCL com o mapa Hector
 
@@ -100,14 +138,7 @@ Execute:
 rosrun localiza_o_robotica_at3 localize_hector_map.sh
 ```
 
-O comando executa, nesta ordem:
-
-1. carrega `maps/hector/lar_hector.yaml`;
-2. inicia AMCL na pose `(0, 0, 0)`;
-3. inicia a gravação do resultado;
-4. reproduz integralmente `bags/lar_localization.bag`.
-
-O resultado fica em `results/localization/amcl_hector.bag`.
+O mapa carregado será `maps/hector/lar_hector.yaml` e o resultado ficará em `results/localization/amcl_hector.bag`.
 
 ## 7. Localização AMCL com o mapa GMapping
 
@@ -117,15 +148,7 @@ Use exatamente a mesma bag de entrada:
 rosrun localiza_o_robotica_at3 localize_gmapping_map.sh
 ```
 
-O mapa carregado será `maps/gmapping/lar_gmapping.yaml` e o resultado ficará em
-`results/localization/amcl_gmapping.bag`.
-
-As bags de resultado não são sobrescritas.
-
-Com a posição inicial padrão do simulador e dos mapas gerados neste projeto,
-use `(0, 0, 0)`. Os resultados preservam `/amcl_pose`, `/particlecloud`, TF,
-odometria e `/gazebo_ground_truth/odom`, permitindo calcular posteriormente
-erro de posição, RMSE, erro angular e estabilidade sem repetir o AMCL.
+O mapa carregado será `maps/gmapping/lar_gmapping.yaml` e o resultado ficará em `results/localization/amcl_gmapping.bag`.
 
 ## 8. Comparar AMCL com o ground truth
 
@@ -141,13 +164,6 @@ O comparador lê diretamente:
 results/localization/amcl_hector.bag
 results/localization/amcl_gmapping.bag
 ```
-
-Não é necessário iniciar `roscore` nem reproduzir as bags. Cada pose do AMCL é
-associada à amostra de ground truth temporalmente mais próxima, com tolerância
-padrão de `0,1 s`. Como as bags atuais identificam ambas as poses no frame
-`map`, a comparação é direta. Para bags futuras com frames distintos, o script
-aplica um alinhamento rígido SE(2) pela pose inicial e registra essa decisão no
-resumo.
 
 As métricas incluem:
 
