@@ -187,16 +187,6 @@ comparison_position_error.png
 comparison_yaw_error.png
 comparison_trajectories.png
 ```
+## Resultados e discussao
 
-Para caminhos personalizados ou outra tolerância temporal:
-
-```bash
-rosrun localiza_o_robotica_at3 compare_amcl_results.py \
-  --hector-bag /caminho/amcl_hector.bag \
-  --gmapping-bag /caminho/amcl_gmapping.bag \
-  --output-dir /caminho/resultados \
-  --max-pair-dt 0.1
-```
-
-Neste ensaio, GMapping obteve menor erro médio e RMSE de posição, mas o relatório
-deve ser regenerado para cada nova trajetória antes de tirar conclusões.
+Neste ensaio, GMapping obteve menor erro médio e RMSE de posição, mas o relatório deve ser regenerado para cada nova trajetória antes de tirar conclusões.
