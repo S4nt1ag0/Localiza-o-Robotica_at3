@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="bag" default="$(find localiza_o_robotica_at3)/bags/lar_localization.bag"/>
+
+  <node pkg="rosbag" type="record" name="record_localization" output="screen"
+        args="--lz4 -O $(arg bag) /clock /front/scan /tf /tf_static /odometry/filtered /husky_velocity_controller/odom /gazebo_ground_truth/odom /imu/data /cmd_vel"/>
+</launch>

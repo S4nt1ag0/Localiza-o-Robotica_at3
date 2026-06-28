@@ -3,6 +3,7 @@ set -euo pipefail
 
 PACKAGES=(
   imagemagick
+  ros-noetic-amcl
   ros-noetic-gmapping
   ros-noetic-hector-mapping
   ros-noetic-map-server

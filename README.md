@@ -75,3 +75,54 @@ Por padrão são criados `maps/gmapping/lar_gmapping.pgm`, `lar_gmapping.yaml`,
 
 Ambos reproduzem integralmente a mesma bag com `/use_sim_time`, resolução de
 `0,05 m`, e salvam por `/dynamic_map` depois do replay. Não rode os dois juntos.
+
+## 5. Gravar uma trajetória exclusiva para localização
+
+Inicie novamente o Gazebo e o steering como na seção 2. Em outro terminal,
+grave uma nova trajetória:
+
+```bash
+rosrun localiza_o_robotica_at3 record_localization.sh
+```
+
+A saída padrão é `bags/lar_localization.bag`. O script não permite usar o
+caminho de `lar_mapping.bag` e também não sobrescreve uma gravação existente.
+Essa bag é criada sem SLAM e contém laser, TF, odometria e ground truth.
+
+Ao dirigir, comece na pose padrão do Husky, faça uma trajetória representativa
+e pressione `Ctrl+C` quando terminar. Depois feche Gazebo e qualquer `roscore`.
+
+## 6. Localização AMCL com o mapa Hector
+
+Execute:
+
+```bash
+rosrun localiza_o_robotica_at3 localize_hector_map.sh
+```
+
+O comando executa, nesta ordem:
+
+1. carrega `maps/hector/lar_hector.yaml`;
+2. inicia AMCL na pose `(0, 0, 0)`;
+3. inicia a gravação do resultado;
+4. reproduz integralmente `bags/lar_localization.bag`.
+
+O resultado fica em `results/localization/amcl_hector.bag`.
+
+## 7. Localização AMCL com o mapa GMapping
+
+Use exatamente a mesma bag de entrada:
+
+```bash
+rosrun localiza_o_robotica_at3 localize_gmapping_map.sh
+```
+
+O mapa carregado será `maps/gmapping/lar_gmapping.yaml` e o resultado ficará em
+`results/localization/amcl_gmapping.bag`.
+
+As bags de resultado não são sobrescritas.
+
+Com a posição inicial padrão do simulador e dos mapas gerados neste projeto,
+use `(0, 0, 0)`. Os resultados preservam `/amcl_pose`, `/particlecloud`, TF,
+odometria e `/gazebo_ground_truth/odom`, permitindo calcular posteriormente
+erro de posição, RMSE, erro angular e estabilidade sem repetir o AMCL.

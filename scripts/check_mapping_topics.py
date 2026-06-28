@@ -33,8 +33,8 @@ def fail(message):
 def main():
     rospy.init_node("check_mapping_topics", anonymous=True)
     ok = True
-
     published = dict(rospy.get_published_topics(namespace="/"))
+
     for topic, expected_type in EXPECTED_TYPES.items():
         actual_type = published.get(topic)
         accepted_types = COMPATIBLE_TYPES.get(topic, {expected_type})
@@ -92,14 +92,14 @@ def main():
         master = rosgraph.Master(rospy.get_name())
         publishers, _, _ = master.getSystemState()
         nodes = {node for _, topic_nodes in publishers for node in topic_nodes}
-        forbidden = sorted(node for node in nodes if "gmapping" in node or "hector_mapping" in node)
+        forbidden = sorted(node for node in nodes if "gmapping" in node or "hector_mapping" in node or node == "/amcl")
         if forbidden:
-            ok = fail("SLAM online detectado; encerre antes de gravar: %s" % ", ".join(forbidden)) and ok
+            ok = fail("SLAM/localizacao online detectado; encerre antes de gravar: %s" % ", ".join(forbidden)) and ok
     except rosgraph.MasterException as error:
         ok = fail("nao foi possivel consultar o ROS master: %s" % error) and ok
 
     if ok:
-        rospy.loginfo("Ambiente pronto para gravacao do mapeamento.")
+        rospy.loginfo("Ambiente pronto para gravacao.")
         return 0
     rospy.logerr("Ambiente NAO esta pronto. Corrija os itens acima antes de gravar.")
     return 1
