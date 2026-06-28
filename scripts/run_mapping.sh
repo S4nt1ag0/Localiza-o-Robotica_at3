@@ -104,7 +104,7 @@ if [[ "$ready" != true ]]; then
 fi
 
 echo "Reproduzindo integralmente: $BAG"
-rosbag play --clock --quiet "$BAG"
+rosbag play --quiet "$BAG"
 
 service_ready=false
 for _ in $(seq 1 20); do
