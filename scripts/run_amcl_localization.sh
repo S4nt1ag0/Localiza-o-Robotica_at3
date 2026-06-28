@@ -181,4 +181,3 @@ for topic in /amcl_pose /gazebo_ground_truth/odom; do
 done
 
 echo "Localizacao AMCL com mapa $METHOD concluida: $RESULT_BAG"
-echo "O resultado contem /amcl_pose e /gazebo_ground_truth/odom para as metricas futuras."
